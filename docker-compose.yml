@@ -8,3 +8,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - 4321:4321
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

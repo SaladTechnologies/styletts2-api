@@ -43,6 +43,16 @@ def process_voice(voice_sample: str):
         return f.name
 
 
+def get_wav_length_from_bytesio(bytes_io):
+    # Ensure the buffer's position is at the start
+    bytes_io.seek(0)
+    audio = AudioSegment.from_file(bytes_io, format="wav")
+
+    # Calculate the duration in milliseconds, then convert to seconds
+    duration_seconds = len(audio) / 1000.0
+    return audio, duration_seconds
+
+
 class TTSRequest(BaseModel):
     text: str
     voice: Optional[str] = None
@@ -74,23 +84,24 @@ def generate(request: TTSRequest, background_tasks: BackgroundTasks):
         **params,
         output_wav_file=wav_bytes,
     )
-    logging.info(f"Generated audio in {time.perf_counter() - start} seconds.")
+    inference_time = time.perf_counter() - start
+    logging.info(f"Generated audio in {inference_time} seconds.")
+    audio, duration_seconds = get_wav_length_from_bytesio(wav_bytes)
     background_tasks.add_task(os.remove, wav_buffer)
-    if output_format == "wav":
-        return StreamingResponse(
-            wav_bytes,
-            media_type="audio/wav",
-        )
-    elif output_format == "mp3":
-        wav_bytes.seek(0)
-        wav = AudioSegment.from_file(wav_bytes, format="wav")
-        mp3_bytes = BytesIO()
-        wav.export(mp3_bytes, format="mp3")
-        mp3_bytes.seek(0)
-        return StreamingResponse(
-            mp3_bytes,
-            media_type="audio/mp3",
-        )
+    headers = {
+        "x-inference-time": str(inference_time),
+        "x-audio-length": str(duration_seconds),
+        "x-realtime-factor": str(duration_seconds / inference_time),
+    }
+    return_bytes = BytesIO()
+    audio.export(return_bytes, format=output_format)
+    return_bytes.seek(0)
+
+    return StreamingResponse(
+        return_bytes,
+        media_type=f"audio/{output_format}",
+        headers=headers,
+    )
 
 
 if __name__ == "__main__":
