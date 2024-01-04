@@ -14,7 +14,11 @@ from pydub import AudioSegment
 from fastapi.responses import StreamingResponse
 import tempfile
 
-logging.basicConfig(level=logging.INFO)
+log_level = os.getenv("LOG_LEVEL", "INFO")
+log_level = log_level.upper()
+if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+    log_level = "INFO"
+logging.basicConfig(level=getattr(logging, log_level))
 
 host = os.getenv("HOST", "*")
 port = os.getenv("PORT", "4321")

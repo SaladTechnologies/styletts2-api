@@ -15,3 +15,5 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
+    environment:
+      LOG_LEVEL: WARNING
