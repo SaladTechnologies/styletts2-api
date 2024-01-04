@@ -2,7 +2,7 @@ import time
 from io import BytesIO
 import base64
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
@@ -12,6 +12,7 @@ import logging
 import magic
 from pydub import AudioSegment
 from fastapi.responses import StreamingResponse
+import tempfile
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,12 +34,13 @@ def process_voice(voice_sample: str):
     audio_data = base64.b64decode(voice_sample)
     audio_buffer = BytesIO(audio_data)
     file_type = magic.from_buffer(audio_buffer.read(2048), mime=True)
+    if file_type == "video/mp4":
+        file_type = "m4a"
     audio_buffer.seek(0)
     audio = AudioSegment.from_file(audio_buffer, format=file_type)
-    wav_buffer = BytesIO()
-    audio.export(wav_buffer, format="wav")
-    wav_buffer.seek(0)
-    return wav_buffer, file_type
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        audio.export(f.name, format="wav")
+        return f.name
 
 
 class TTSRequest(BaseModel):
@@ -58,13 +60,13 @@ def health_check():
 
 
 @app.post("/generate")
-def generate(request: TTSRequest):
+def generate(request: TTSRequest, background_tasks: BackgroundTasks):
     start = time.perf_counter()
     params = request.model_dump()
     output_format = params["output_format"]
     del params["output_format"]
     if "voice" in params and params["voice"] is not None:
-        wav_buffer, file_type = process_voice(request.voice)
+        wav_buffer = process_voice(request.voice)
         params["target_voice_path"] = wav_buffer
     del params["voice"]
     wav_bytes = BytesIO()
@@ -72,12 +74,23 @@ def generate(request: TTSRequest):
         **params,
         output_wav_file=wav_bytes,
     )
-    logging.info(wav_bytes)
     logging.info(f"Generated audio in {time.perf_counter() - start} seconds.")
-    return StreamingResponse(
-        wav_bytes,
-        media_type="audio/wav",
-    )
+    background_tasks.add_task(os.remove, wav_buffer)
+    if output_format == "wav":
+        return StreamingResponse(
+            wav_bytes,
+            media_type="audio/wav",
+        )
+    elif output_format == "mp3":
+        wav_bytes.seek(0)
+        wav = AudioSegment.from_file(wav_bytes, format="wav")
+        mp3_bytes = BytesIO()
+        wav.export(mp3_bytes, format="mp3")
+        mp3_bytes.seek(0)
+        return StreamingResponse(
+            mp3_bytes,
+            media_type="audio/mp3",
+        )
 
 
 if __name__ == "__main__":
