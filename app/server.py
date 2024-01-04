@@ -99,6 +99,7 @@ def generate(request: TTSRequest, background_tasks: BackgroundTasks):
     params = request.model_dump()
     output_format = params["output_format"]
     del params["output_format"]
+    wav_buffer = None
     if "voice" in params and params["voice"] is not None:
         wav_buffer = process_voice(request.voice)
         params["target_voice_path"] = wav_buffer
@@ -111,7 +112,8 @@ def generate(request: TTSRequest, background_tasks: BackgroundTasks):
     inference_time = time.perf_counter() - start
     logging.info(f"Generated audio in {inference_time} seconds.")
     audio, duration_seconds = get_wav_length_from_bytesio(wav_bytes)
-    background_tasks.add_task(os.remove, wav_buffer)
+    if wav_buffer is not None:
+        background_tasks.add_task(os.remove, wav_buffer)
     headers = {
         "x-inference-time": str(inference_time),
         "x-audio-length": str(duration_seconds),
