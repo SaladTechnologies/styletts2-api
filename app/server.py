@@ -3,7 +3,7 @@ from io import BytesIO
 import base64
 import os
 from fastapi import FastAPI, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import uvicorn
 from __version__ import __version__
@@ -58,14 +58,34 @@ def get_wav_length_from_bytesio(bytes_io):
 
 
 class TTSRequest(BaseModel):
-    text: str
-    voice: Optional[str] = None
+    text: str = Field(..., title="Text to convert to speech")
+    voice: Optional[str] = Field(
+        None,
+        title="Base64 encoded voice sample",
+        description="If provided, the model will attempt to match the voice of the provided sample. 3-5s of sample audio is recommended.",
+    )
     output_sample_rate: Optional[int] = 24000
-    alpha: Optional[float] = 0.3
-    beta: Optional[float] = 0.7
-    diffusion_steps: Optional[int] = 5
-    embedding_scale: Optional[int] = 1
-    output_format: Optional[str] = "wav"
+    alpha: Optional[float] = Field(
+        0.3,
+        title="Alpha",
+        description="`alpha` is the factor to determine much we use the style sampled based on the text instead of the reference. The higher the value of `alpha`, the more suitable the style it is to the text but less similar to the reference. `alpha` determines the timbre of the speaker.",
+    )
+    beta: Optional[float] = Field(
+        0.7,
+        title="Beta",
+        description="`beta` is the factor to determine much we use the style sampled based on the text instead of the reference. The higher the value of `beta` the more suitable the style it is to the text but less similar to the reference. Using higher beta makes the synthesized speech more emotional, at the cost of lower similarity to the reference. `beta` determines the prosody of the speaker.",
+    )
+    diffusion_steps: Optional[int] = Field(
+        5,
+        title="Diffusion steps",
+        description="Since the sampler is ancestral, the higher the steps, the more diverse the samples are, with the cost of slower synthesis speed.",
+    )
+    embedding_scale: Optional[float] = Field(
+        1,
+        title="Embedding scale",
+        description="This is the classifier-free guidance scale. The higher the scale, the more conditional the style is to the input text and hence more emotional.",
+    )
+    output_format: Optional[str] = "mp3"
 
 
 @app.get("/hc")
