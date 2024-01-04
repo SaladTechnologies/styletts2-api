@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  tts:
+    image: saladtechnologies/styletts2:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 4321:4321

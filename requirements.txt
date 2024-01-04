@@ -1,0 +1,8 @@
+soundfile
+torchaudio
+styletts2
+fastapi
+pydantic
+uvicorn
+pydub
+python-magic
