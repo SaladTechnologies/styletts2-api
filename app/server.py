@@ -40,13 +40,13 @@ def process_voice(voice_sample: str):
     file_type = magic.from_buffer(audio_buffer.read(2048), mime=True)
 
     if file_type == "video/mp4":
-       file_type = "m4a"
+        file_type = "m4a"
     elif file_type == "audio/wav":
-       file_type = "wav"
+        file_type = "wav"
     elif file_type == "audio/x-wav":
-       file_type = "wav"
+        file_type = "wav"
     elif file_type == "audio/mp3":
-       file_type = "mp3"
+        file_type = "mp3"
 
     audio_buffer.seek(0)
     audio = AudioSegment.from_file(audio_buffer, format=file_type)
