@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu124
 
+RUN python -c "import nltk; nltk.download('punkt_tab')"
+
 RUN python -c "from styletts2 import tts; tts.StyleTTS2()"
 
 COPY app/ .

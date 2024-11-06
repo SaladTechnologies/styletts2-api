@@ -1,6 +1,7 @@
 soundfile
 torchaudio
 styletts2
+# styletts2 @ git+https://github.com/bendangelo/StyleTTS2@main
 fastapi
 pydantic
 uvicorn

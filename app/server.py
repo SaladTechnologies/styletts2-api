@@ -2,7 +2,8 @@ import time
 from io import BytesIO
 import base64
 import os
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Security, HTTPException, Depends
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 from typing import Optional
 import uvicorn
@@ -14,16 +15,19 @@ from pydub import AudioSegment
 from fastapi.responses import StreamingResponse
 import tempfile
 
+# Setup logging
 log_level = os.getenv("LOG_LEVEL", "INFO")
 log_level = log_level.upper()
 if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
     log_level = "INFO"
 logging.basicConfig(level=getattr(logging, log_level))
 
+# Server configuration
 host = os.getenv("HOST", "*")
 port = os.getenv("PORT", "4321")
 port = int(port)
 
+# Model initialization
 warmup_text = "This is an inference API for StyleTTS2. It is now warming up..."
 
 load_start = time.perf_counter()
